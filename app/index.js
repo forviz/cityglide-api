@@ -29,3 +29,5 @@ app.listen(3000, () => {
   console.log('example app lisr'); 
 });
 
+module.exports = app;
+
