@@ -1,0 +1,41 @@
+{
+  "name": "cityglide-api",
+  "version": "1.0.0",
+  "description": "cityglide-api",
+  "main": "index.js",
+  "scripts": {
+    "start": "node_modules/.bin/nodemon ./app/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/DM-godaremee/cityglide-api.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/DM-godaremee/cityglide-api/issues"
+  },
+  "homepage": "https://github.com/DM-godaremee/cityglide-api#readme",
+  "dependencies": {
+    "babel-register": "^6.24.1",
+    "body-parser": "^1.17.2",
+    "dotenv": "^4.0.0",
+    "eslint": "^3.14.1",
+    "eslint-config-airbnb": "^14.0.0",
+    "eslint-config-airbnb-base": "^11.0.0",
+    "eslint-plugin-import": "^2.2.0",
+    "eslint-plugin-jsx-a11y": "^3.0.2",
+    "eslint-plugin-react": "^6.9.0",
+    "express": "^4.15.3",
+    "knex": "^0.13.0",
+    "lodash": "^4.17.4",
+    "mysql": "^2.13.0",
+    "nodemon": "^1.11.0"
+  },
+  "devDependencies": {
+    "babel-core": "^6.25.0",
+    "babel-loader": "^7.1.1",
+    "babel-plugin-transform-object-rest-spread": "^6.23.0",
+    "babel-preset-env": "^1.5.2"
+  }
+}
