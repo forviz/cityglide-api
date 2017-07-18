@@ -1,15 +1,10 @@
 const db = require('../config/db');
 const _ = require('lodash');
 const request = require("request");
-
-const sleep = (milliseconds) => {
-  var start = new Date().getTime();
-  for (var i = 0; i < 1e7; i++) {
-    if ((new Date().getTime() - start) > milliseconds) {
-      break;
-    }
-  }
-}
+const dotenv = require('dotenv');
+const Response = require('./ResponseController');
+const input = require('./InputController');
+dotenv.config();
 
 const callApiGoogle = (start, stop) => {
   return new Promise((resolve, reject) => {
@@ -20,7 +15,7 @@ const callApiGoogle = (start, stop) => {
               {
                 origins: start,
                 destinations: stop,
-                key: ' AIzaSyDIWuc_y_NrGetc12FMh8lXSZwR-sQ4A18',
+                key: process.env.GOOGLE_APP_KEY,
                 mode: 'transit',
                 avoid: 'highways',
                 transit_mode: 'bus',
@@ -36,7 +31,7 @@ const callApiGoogle = (start, stop) => {
     request(options, function (error, response, body) {
       if (error)
         reject(error);
-      let jsonBody = JSON.parse(body);
+      const jsonBody = JSON.parse(body);
       resolve(jsonBody);
     });
   });
@@ -45,10 +40,11 @@ const callApiGoogle = (start, stop) => {
 exports.getTrips = async (req, res, next) => {
   try {
     let data = {};
-    const localtion_id = req.query.stop_id;
+    const location_id = input.checkInputFormat('int', req.query.stop_id);
     const route_id = req.query.route_id;
-    let condition = {'routes_detail.locations_id': localtion_id};
+    let condition = {'routes_detail.locations_id': location_id};
     if (route_id) {
+      input.checkInputFormat('int', route_id);
       condition = _.assign({}, condition, {'routes_detail.routes_id': route_id});
     }
 
@@ -58,88 +54,76 @@ exports.getTrips = async (req, res, next) => {
             .leftJoin('locations', 'routes_detail.locations_id', 'locations.id')
             .leftJoin('routes', 'routes_detail.routes_id', 'routes.routes_id')
             .innerJoin('service', 'routes.routes_name', 'service.service_line').orderBy('routes_detail.priority', 'acs');
-    let _data = [];
     if (qPosition && qPosition.length > 0) {
       //******************** Call Api ********************//
-      let latLonStart = latLonStop = "";
-      _.forEach(qPosition, (v, i) => {
-        if (i > 0) {
-          latLonStart += "|";
-        } else {
-          latLonStop = v.latitude + ',' + v.longitude
-        }
-        latLonStart += v.service_latitude + ',' + v.service_longtitude
+      const latLonStop = qPosition[0].latitude + ',' + qPosition[0].longitude;
+      const allLatLon = _.map(qPosition, v => {
+        return v.service_latitude + ',' + v.service_longtitude;
       });
+      const latLonStart = _.join(allLatLon, '|');
       let _googleMap = await callApiGoogle(latLonStart, latLonStop)
       //******************** End Call Api ********************//
 
-      for (var key in qPosition) {
-
+      data = _.map(qPosition, (v, key) => {
         let trip = {
           "id": qPosition[key].id,
           "route-id": qPosition[key].routes_id,
           "service-id": qPosition[key].service_id,
           "trip-headsign": "",
           "trip-short-name": "",
-          "direction": _googleMap.rows[0].elements[0].distance.value,
+          "direction": _googleMap.rows[key].elements[0].distance.value,
         };
         let vehicle = {
           "id": qPosition[key].service_id,
           "label": qPosition[key].service_line,
           "license-plate": qPosition[key].service_number
         };
-
-
         let temp = {
           trip: trip,
           vehicle: vehicle,
           timestamp: _googleMap.rows[key].elements[0].duration.value,
           delay: 0
         };
-        _data.push(temp);
-      }
-      data = {
-        data: _data
-      }
+        return temp;
+      });
     }
-    res.status(200).json(data);
+    res.status(200).json(Response.responseWithSuccess(data));
   } catch (e) {
     console.log(e);
-    res.status(500).json(e);
+    const err = Response.responseWithError(e);
+    res.status(err.status).send(err);
   }
 };
 
 
 exports.getVehicles = async (req, res, next) => {
-  const vehicleId = req.params.vehicleId;
-  let data = {};
   try {
+    const vehicleId = input.checkInputFormat('int', req.params.vehicleId);
+    let data = {};
     if (vehicleId) {
       const query = await db.first('*').where('service_id', vehicleId)
               .from('service');
       if (query) {
         data = {
-          data: {
-            "trip-id": null,
-            "vehicle-id": query.service_id,
-            "position": {
-              "lat": query.service_latitude,
-              "lng": query.service_longtitude
-            },
-            "current-stop-sequence": null,
-            "stop-id": null,
-            "current-status": null,
-            "timestamp": null,
-            "congestion-level": null,
-            "occupancy-status": null
-          }
+          "trip-id": null,
+          "vehicle-id": query.service_id,
+          "position": {
+            "lat": query.service_latitude,
+            "lng": query.service_longtitude
+          },
+          "current-stop-sequence": null,
+          "stop-id": null,
+          "current-status": null,
+          "timestamp": Date.parse(query.service_last_update),
+          "congestion-level": null,
+          "occupancy-status": null
         }
       }
     }
-    res.status(200).json(data);
+    res.status(200).json(Response.responseWithSuccess(data));
   } catch (e) {
-    console.log(e);
-    res.status(500).json(e);
+    const err = Response.responseWithError(e);
+    res.status(err.status).send(err);
   }
 
 }

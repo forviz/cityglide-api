@@ -1,5 +1,7 @@
 const db = require('../config/db');
 const _ = require('lodash');
+const Response = require('./ResponseController');
+const input = require('./InputController');
 
 const getStopsByServices = async (route_id) => {
   return await db.select('locations.id', 'locations.stop_name as name', 'locations.stop_description as desc', 'locations.latitude as lat', 'locations.longitude as lon', 'locations.locations_type_id as location-type')
@@ -32,17 +34,15 @@ const getServiceData = async (route_id) => {
 }
 
 exports.getService = async (req, res, next) => {
-  let data = {};
   try {
-    const route_id = req.params.route_id;
+    const route_id = input.checkInputFormat('int', req.params.route_id);
     const qData = await getServiceData(route_id);
-    data = {
-      data: qData
-    }
-    res.status(200).json(data);
+    const data = (qData) ? qData : {};
+    res.status(200).json(Response.responseWithSuccess(data));
   } catch (e) {
     console.log(e);
-    res.status(500).json(e);
+    const err = Response.responseWithError(e);
+    res.status(err.status).send(err);
   }
 };
 
@@ -53,34 +53,30 @@ exports.getMultiService = async (req, res, next) => {
     const results = [];
     if (route_id) {
       const splitServiceId = route_id.split(",");
-      data = splitServiceId;
       for (let num of splitServiceId) {
-        results.push(await getServiceData(num));
+        input.checkInputFormat('int', num);
+        const queryWithReturn = await getServiceData(num);
+        if (queryWithReturn) {
+          results.push(queryWithReturn);
+        }
       }
     }
-    data = {
-      data: results
-    }
-    res.status(200).json(data);
+    res.status(200).json(Response.responseWithSuccess(results));
   } catch (e) {
     console.log(e);
-    res.status(500).json(e);
+    const err = Response.responseWithError(e);
+    res.status(err.status).send(err);
   }
 }
 
 exports.getServiceStops = async (req, res, next) => {
   try {
-    const route_id = req.params.route_id;
-    console.log('route_id', route_id);
-    if (!route_id)
-      throw new Error("How can I add new product when no value provided?");
+    const route_id = input.checkInputFormat('int', req.params.route_id);
     const qStop = await getStopsByServices(route_id);
-    data = {
-      data: qStop
-    }
-    res.status(200).json(data);
+    res.status(200).json(Response.responseWithSuccess(qStop));
   } catch (e) {
     console.log(e);
-    res.status(500).json(e);
+    const err = Response.responseWithError(e);
+    res.status(err.status).send(err);
   }
 };
