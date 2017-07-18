@@ -6,6 +6,7 @@ const stopsController = require('./controller/StopsController');
 const realtimeController = require('./controller/RealtimeController');
 const Response = require('./controller/ResponseController')
 
+app.set('port', process.env.PORT || 3000);
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
@@ -53,7 +54,8 @@ app.use(function (req, res, next) {
 /************************** End Set Url 404 **************************/
 
 
-app.listen(3000, () => {
+app.listen(app.get('port'), () => {
   console.log('รันดุ๊');
 });
 
+module.exports = app;
