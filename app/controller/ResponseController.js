@@ -3,7 +3,7 @@ exports.responseWithSuccess = (data) => {
     data,
     meta: '....',
   };
-}
+};
 
 exports.responseWithError = (errorCode) => {
   let errorStatus = {};
@@ -11,22 +11,22 @@ exports.responseWithError = (errorCode) => {
     case 404:
       errorStatus = {
         status: errorCode,
-        message: "404 Not Found"
-      }
+        message: '404 Not Found',
+      };
       break;
     case 405:
       errorStatus = {
         status: errorCode,
-        message: "Method Not Allowed"
-      }
+        message: 'Method Not Allowed',
+      };
       break;
     case 400:
     default:
       errorStatus = {
         status: errorCode,
-        message: "Bad Request"
-      }
+        message: 'Bad Request',
+      };
       break;
   }
   return errorStatus;
-}
+};

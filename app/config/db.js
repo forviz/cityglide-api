@@ -1,4 +1,8 @@
+/* eslint linebreak-style: ['error', 'windows'] */
+/* eslint camelcase: 'error' */
+
 const dotenv = require('dotenv');
+
 dotenv.config();
 const knex = require('knex')({
   client: 'mysql',
@@ -8,7 +12,7 @@ const knex = require('knex')({
     password: process.env.DB_PASS,
     database: process.env.DB_NAME,
     port: process.env.DB_PORT || 3306,
-  }
+  },
 });
 
 module.exports = knex;

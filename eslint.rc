@@ -1,0 +1,21 @@
+{
+  "parser": "babel-eslint",
+  "extends": "airbnb",
+  "globals": {
+    "window": true,
+    "document": true,
+    "navigator": true,
+    "URL": true,
+    "nodeRequire": true,
+    "videojs": true,
+    "Peer": true,
+    "MediaRecorder": true,
+    "Blob": true,
+    "FileReader": true,
+    "require": true,
+    "localStorage": true,
+  },
+  "env": {
+    "jquery": true,
+  }
+}
