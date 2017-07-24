@@ -5,7 +5,6 @@ exports.checkInputFormat = (type, value) => {
   switch (type) {
     case 'int':
     case 'float':
-      // bool = (parseInt(value, 10) == value); // _.isNaN(_.toNumber(value))
       bool = !_.isNaN(_.toNumber(value));
       break;
     default:

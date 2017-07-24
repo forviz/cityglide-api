@@ -1,12 +1,24 @@
-/* eslint linebreak-style: ['error', 'windows'] */
-/* eslint camelcase: 'error' */
-
 const bodyParser = require('body-parser');
 const routesController = require('./controller/RoutesController');
 const stopsController = require('./controller/StopsController');
 const realtimeController = require('./controller/RealtimeController');
 const Response = require('./controller/ResponseController');
 const express = require('express');
+
+
+// ************************** Test Connect Database ************************** //
+const db = require('./config/db');
+
+db.select('*').from('routes_detail').limit(1).offset(0)
+.then(() => {
+  console.log('Database connect successful');
+})
+.catch((e) => {
+  console.log(e);
+});
+
+// ************************** End Test Connect Database ************************** //
+
 
 const app = express();
 app.set('port', process.env.PORT || 3000);
@@ -33,7 +45,7 @@ app.get(`${apiPrefix}/trip/:route_id`, routesController.getService);
 app.get(`${apiPrefix}/realtime/trips`, realtimeController.getTrips);
 app.get(`${apiPrefix}/realtime/vehicles/:vehicleId`, realtimeController.getVehicles);
 
-// ************************** Method Not Aloow ************************** //
+// ************************** Method Not Alow ************************** //
 app.all(`${apiPrefix}/routes/`, rountNotMethodAllow);
 app.all(`${apiPrefix}/routes/:route_id`, rountNotMethodAllow);
 app.all(`${apiPrefix}/routes/:route_id/stops`, rountNotMethodAllow);
@@ -47,7 +59,7 @@ app.all(`${apiPrefix}/trip/:route_id`, rountNotMethodAllow);
 app.all(`${apiPrefix}/realtime/trips`, rountNotMethodAllow);
 app.all(`${apiPrefix}/realtime/vehicles/:vehicleId`, rountNotMethodAllow);
 
-// ************************** End Method Not Aloow ************************** //
+// ************************** End Method Not Alow ************************** //
 
 // ************************** Set Url 404 ************************** //
 app.use((req, res) => {

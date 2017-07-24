@@ -1,5 +1,3 @@
-/* eslint no-restricted-syntax: ["error", "FunctionExpression", "WithStatement", "BinaryExpression[operator='in']"] */
-
 const db = require('../config/db');
 const _ = require('lodash');
 const Response = require('./ResponseController');

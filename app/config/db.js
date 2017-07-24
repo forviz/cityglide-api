@@ -1,6 +1,3 @@
-/* eslint linebreak-style: ['error', 'windows'] */
-/* eslint camelcase: 'error' */
-
 const dotenv = require('dotenv');
 
 dotenv.config();

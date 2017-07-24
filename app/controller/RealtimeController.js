@@ -1,12 +1,10 @@
-/* eslint linebreak-style: ['error', 'windows'] */
-/* eslint camelcase: 'error' */
-
 const db = require('../config/db');
 const _ = require('lodash');
 const request = require('request');
 const dotenv = require('dotenv');
 const Response = require('./ResponseController');
 const input = require('./InputController');
+const moment = require('moment');
 
 dotenv.config();
 const callApiGoogle = (start, stop) => {
@@ -28,28 +26,52 @@ const callApiGoogle = (start, stop) => {
       },
     };
     request(options, (error, response, body) => {
-      if (error) {
-        reject(error);
-      }
       const jsonBody = JSON.parse(body);
-      resolve(jsonBody);
+      if (jsonBody.error_message) {
+        reject({
+          message: 401,
+          error_message: jsonBody.error_message,
+        });
+      } else {
+        resolve(jsonBody);
+      }
     });
   });
 };
+
+const loopRouteId = async (routeId) => {
+  const endStationResults = _.map(routeId, async (s) => {
+    const qEndStation = await db.first('*').from('routes_detail').where('routes_id', s)
+            .whereNot('routes_detail.routes_detail_station_priority', 0)
+            .leftJoin('locations', 'routes_detail.locations_id', 'locations.id')
+            .orderBy('routes_detail_station_priority', 'desc');
+    return qEndStation;
+  });
+  const promiseResult = await Promise.all(endStationResults);
+  const removeFalse = _.remove(promiseResult, (value) => {
+    return value || false;
+  });
+  return removeFalse;
+};
+
 exports.getTrips = async (req, res) => {
   try {
     let data = {};
     let _googleMap = {};
     const locationId = input.checkInputFormat('int', req.query.stop_id);
     const routeId = req.query.route_id;
-    let condition = { 'routes_detail.locations_id': locationId };
+    let condition = {
+      'routes_detail.locations_id': locationId,
+    };
     if (routeId) {
       input.checkInputFormat('int', routeId);
-      condition = _.assign({}, condition, { 'routes_detail.routes_id': routeId });
+      condition = _.assign({}, condition, {
+        'routes_detail.routes_id': routeId,
+      });
     }
 
     const qPosition = await db.select('routes_detail.priority', 'locations.*',
-            'routes.routes_id', 'routes.routes_name', 'routes.routes_type_id', 'routes_detail.routes_detail_station_priority',
+            'routes.routes_id', 'routes.routes_name', 'routes.routes_detail', 'routes.routes_type_id', 'routes_detail.routes_detail_station_priority',
             'service.service_latitude', 'service.service_longtitude', 'service.service_station_priority', 'service_id',
             'service.service_next_priority', 'service_last_update', 'service_start_station', 'service_line', 'service_number')
             .from('routes_detail').where(condition)
@@ -61,6 +83,13 @@ exports.getTrips = async (req, res) => {
             .innerJoin('service', 'routes.routes_name', 'service.service_line')
             .orderBy('routes_detail.priority', 'asc');
     if (qPosition && qPosition.length > 0) {
+      const _routeID = _.sortedUniqBy(qPosition, (_q) => {
+        return _q.routes_id;
+      });
+      const routeIDArray = _.map(_routeID, (e) => {
+        return e.routes_id;
+      });
+      const endStationResults = await loopRouteId(routeIDArray);
 // ******************** Call Api ******************** //
       const latLonStop = `${qPosition[0].latitude},${qPosition[0].longitude}`;
       const allLatLon = _.map(qPosition, (v) => {
@@ -71,46 +100,56 @@ exports.getTrips = async (req, res) => {
       // ******************** End Call Api ******************** //
 
       data = _.map(qPosition, (v, key) => {
-        const googleMapDuration = _googleMap.rows[key].elements[0].duration.value;
+        let tripResults = null;
+        const googleMapDuration = moment(_.get(_googleMap.rows[key].elements[0].duration.value)).add(10000, 's').format('X');
         const arrival = (v.service_next_priority <= v.routes_detail_station_priority) ? googleMapDuration : 0;
-        const departure = (v.service_next_priority <= v.routes_detail_station_priority) ? googleMapDuration : 0;
+        const departure = (v.service_next_priority > v.routes_detail_station_priority) ? googleMapDuration : 0;
         const serviceStartStation = (v.service_start_station === 'inbound') ? 1 : 2;
-        const trip = {
-          id: 'NOT_AVAILABLE',
-          'route-id': v.routes_id,
-          'service-id': v.service_id,
-          'trip-headsign': '',
-          'trip-short-name': '',
-          direction: serviceStartStation,
-        };
-        const vehicle = {
-          id: v.service_id,
-          label: v.service_line,
-          'license-plate': v.service_number,
-        };
-        const stopTimeUpdate = [
-          {
-            'stop-sequence': v.routes_detail_station_priority,
-            'stop-id': v.id,
-            arrival,
-            departure,
-            distance: _googleMap.rows[key].elements[0].distance.value,
-            'schedule-relationship': 'SCHEDULED',
-          },
-        ];
-        const temp = {
-          trip,
-          vehicle,
-          'stop-time-update': stopTimeUpdate,
-          timestamp: Date.parse(v.service_last_update),
-          delay: 0,
-        };
-        return temp;
+        if (serviceStartStation === v.routes_type_id) {
+          const endStationKey = _.findIndex(endStationResults, (o) => {
+            return o.routes_id === v.routes_id;
+          });
+          const endStationName = (endStationKey >= 0) ? endStationResults[endStationKey].stop_name : '';
+
+          const trip = {
+            id: 'NOT_AVAILABLE',
+            'route-id': v.routes_id,
+            'service-id': v.service_id,
+            'trip-headsign': endStationName,
+            'trip-short-name': v.routes_detail,
+            direction: serviceStartStation,
+          };
+          const vehicle = {
+            id: v.service_id,
+            label: v.service_line,
+            'license-plate': v.service_number,
+          };
+          const stopTimeUpdate = [
+            {
+              'stop-sequence': v.routes_detail_station_priority,
+              'stop-id': v.id,
+              arrival,
+              departure,
+              distance: _.get(_googleMap.rows[key].elements[0].distance.value),
+              'schedule-relationship': 'SCHEDULED',
+            },
+          ];
+          tripResults = {
+            trip,
+            vehicle,
+            'stop-time-update': stopTimeUpdate,
+            timestamp: moment(v.service_last_update).format('X'),
+            delay: 0,
+          };
+        }
+        return tripResults;
       });
     }
-    res.status(200).json(Response.responseWithSuccess(data));
+    res.status(200).json(Response.responseWithSuccess(_.compact(data)));
   } catch (e) {
-    const err = Response.responseWithError(e.message);
+    const code = e.message;
+    const message = e.error_message || '';
+    const err = Response.responseWithError(code, message);
     res.status(err.status).send(err);
   }
 };
@@ -119,20 +158,33 @@ exports.getVehicles = async (req, res) => {
     const vehicleId = input.checkInputFormat('int', req.params.vehicleId);
     let data = {};
     if (vehicleId) {
-      const query = await db.first('*').where('service_id', vehicleId)
+      const query = await db.first('service.*').where('service_id', vehicleId)
               .from('service');
       if (query) {
+        const currentStatus = (query.service_status === 'on') ? 'IN_TRANSIT_TO' : 'STOPPED_AT';
+        const serviceStartStation = (query.service_start_station === 'inbound') ? 1 : 2;
+
+        const queryCurrentStop = await db.first('routes_detail.*').from('routes')
+                .leftJoin('service', 'routes.routes_name', 'service.service_line')
+                .leftJoin('routes_detail', 'routes.routes_id', 'routes_detail.routes_id')
+                .where({
+                  'service.service_id': query.service_id,
+                  'routes.routes_type_id': serviceStartStation,
+                  'routes_detail.routes_detail_station_priority': query.service_station_priority,
+                });
+        const stopID = (queryCurrentStop) ? queryCurrentStop.locations_id : 0;
+
         data = {
-          'trip-id': null,
+          'trip-id': 'NOT_AVAILABLE',
           'vehicle-id': query.service_id,
           position: {
             lat: query.service_latitude,
             lng: query.service_longtitude,
           },
-          'current-stop-sequence': null,
-          'stop-id': null,
-          'current-status': null,
-          timestamp: Date.parse(query.service_last_update),
+          'current-stop-sequence': query.service_station_priority,
+          'stop-id': stopID,
+          'current-status': currentStatus,
+          timestamp: moment(query.service_last_update).format('X'),
           'congestion-level': null,
           'occupancy-status': null,
         };
