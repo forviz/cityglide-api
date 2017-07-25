@@ -40,18 +40,11 @@ const callApiGoogle = (start, stop) => {
 };
 
 const loopRouteId = async (routeId) => {
-  const endStationResults = _.map(routeId, async (s) => {
-    const qEndStation = await db.first('*').from('routes_detail').where('routes_id', s)
+  const endStationResults = await db.select('*').from('routes_detail').whereIn('routes_id', routeId)
             .whereNot('routes_detail.routes_detail_station_priority', 0)
             .leftJoin('locations', 'routes_detail.locations_id', 'locations.id')
             .orderBy('routes_detail_station_priority', 'desc');
-    return qEndStation;
-  });
-  const promiseResult = await Promise.all(endStationResults);
-  const removeFalse = _.remove(promiseResult, (value) => {
-    return value || false;
-  });
-  return removeFalse;
+  return endStationResults;
 };
 
 exports.getTrips = async (req, res) => {
@@ -101,9 +94,11 @@ exports.getTrips = async (req, res) => {
 
       data = _.map(qPosition, (v, key) => {
         let tripResults = null;
-        const googleMapDuration = moment(_.get(_googleMap.rows[key].elements[0].duration.value)).add(10000, 's').format('X');
-        const arrival = (v.service_next_priority <= v.routes_detail_station_priority) ? googleMapDuration : 0;
-        const departure = (v.service_next_priority > v.routes_detail_station_priority) ? googleMapDuration : 0;
+        const googleMapDuration = _.get(_googleMap, `rows.${key}.elements.0.duration.value`);
+        const arrival = (v.service_next_priority <= v.routes_detail_station_priority) ?
+        parseInt(moment(v.service_last_update).add(googleMapDuration, 's').format('X'), 10) : 0;
+        const departure = (v.service_next_priority > v.routes_detail_station_priority) ?
+        parseInt(moment(v.service_last_update).subtract(googleMapDuration, 's').format('X'), 10) : 0;
         const serviceStartStation = (v.service_start_station === 'inbound') ? 1 : 2;
         if (serviceStartStation === v.routes_type_id) {
           const endStationKey = _.findIndex(endStationResults, (o) => {
@@ -130,7 +125,7 @@ exports.getTrips = async (req, res) => {
               'stop-id': v.id,
               arrival,
               departure,
-              distance: _.get(_googleMap.rows[key].elements[0].distance.value),
+              distance: _.get(_googleMap, `rows.${key}.elements.0.distance.value`),
               'schedule-relationship': 'SCHEDULED',
             },
           ];
@@ -138,7 +133,7 @@ exports.getTrips = async (req, res) => {
             trip,
             vehicle,
             'stop-time-update': stopTimeUpdate,
-            timestamp: moment(v.service_last_update).format('X'),
+            timestamp: parseInt(moment(v.service_last_update).format('X'), 10),
             delay: 0,
           };
         }
@@ -170,7 +165,7 @@ exports.getVehicles = async (req, res) => {
                 .where({
                   'service.service_id': query.service_id,
                   'routes.routes_type_id': serviceStartStation,
-                  'routes_detail.routes_detail_station_priority': query.service_station_priority,
+                  'routes_detail.routes_detail_station_priority': query.service_next_priority,
                 });
         const stopID = (queryCurrentStop) ? queryCurrentStop.locations_id : 0;
 
@@ -181,10 +176,10 @@ exports.getVehicles = async (req, res) => {
             lat: query.service_latitude,
             lng: query.service_longtitude,
           },
-          'current-stop-sequence': query.service_station_priority,
+          'current-stop-sequence': parseInt(query.service_next_priority, 10),
           'stop-id': stopID,
           'current-status': currentStatus,
-          timestamp: moment(query.service_last_update).format('X'),
+          timestamp: parseInt(moment(query.service_last_update).format('X'), 10),
           'congestion-level': null,
           'occupancy-status': null,
         };

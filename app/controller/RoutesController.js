@@ -63,9 +63,7 @@ const loopRouteId = async (routeId) => {
     }
   }
   const promiseResult = await Promise.all(results);
-  const removeFalse = _.remove(promiseResult, (value) => {
-    return value !== false;
-  });
+  const removeFalse = _.compact(promiseResult);
   return removeFalse;
 };
 
