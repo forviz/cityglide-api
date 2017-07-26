@@ -2,7 +2,7 @@
 process.env.NODE_ENV = 'test';
 
 // Require the dev-dependencies
-const sinon = require('sinon');
+const _ = require('lodash');
 const chai = require('chai');
 const chaiHttp = require('chai-http');
 const server = require('../app');
@@ -29,23 +29,43 @@ describe('/realtime', () => {
 
     it('should return 200 to success request', (done) => {
       chai.request(server)
-        .get('/v1/realtime/trips/?arriving-at=7881')
+        .get('/v1/realtime/trips/?stop_id=7881')
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.have.property('data');
-          done();
-        });
-    });
 
-    it('should return 200 to success request', (done) => {
-      chai.request(server)
-        .get('/v1/realtime/trips/?arriving-at=7881&route-id=380')
-        .end((err, res) => {
-          res.should.have.status(200);
-          res.body.should.have.property('data');
+          const tripUpdate = _.get(res.body, 'data.0');
+
+          // Trip
+          tripUpdate.should.have.property('trip');
+
+          const trip = tripUpdate.trip;
+          trip.should.have.property('id');
+          trip.should.have.property('route-id');
+          trip.should.have.property('service-id');
+          trip.should.have.property('trip-headsign').to.be.a('string');
+          trip.should.have.property('trip-short-name').to.be.a('string');
+          trip.should.have.property('direction').to.be.a('number');
+
+          // Vehicle
+          res.body.data[0].should.have.property('vehicle');
+
+          const vehicle = tripUpdate.vehicle;
+          vehicle.should.have.property('id');
+          vehicle.should.have.property('label').to.be.a('string');
+          vehicle.should.have.property('license-plate').to.be.a('string');
+
+          tripUpdate.should.have.property('stop-time-update');
+          const stopTimeUpdate = _.get(tripUpdate, 'stop-time-update.0');
+
+          stopTimeUpdate.should.have.property('stop-sequence');
+          stopTimeUpdate.should.have.property('stop-id');
+          stopTimeUpdate.should.have.property('arrival').to.be.a('number');
+          stopTimeUpdate.should.have.property('departure').to.be.a('number');
+          stopTimeUpdate.should.have.property('schedule-relationship').eql('SCHEDULED');
           done();
         });
-    });
+    }).timeout(5000);;
   });
 
   describe('/vehicles', () => {
@@ -63,9 +83,14 @@ describe('/realtime', () => {
       chai.request(server)
         .get('/v1/realtime/vehicles/380')
         .end((err, res) => {
-          console.log(res.body);
           res.should.have.status(200);
           res.body.should.have.property('data');
+          res.body.data.should.have.property('trip-id').eql('NOT_AVAILABLE');
+          res.body.data.should.have.property('vehicle-id').eql(380);
+          res.body.data.should.have.property('current-stop-sequence').eql(67);
+          res.body.data.should.have.property('stop-id').eql(3081);
+          res.body.data.should.have.property('current-status').eql('IN_TRANSIT_TO');
+          res.body.data.should.have.property('timestamp').eql(1493349122);
           done();
         });
     });
