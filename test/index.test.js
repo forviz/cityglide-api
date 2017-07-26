@@ -29,7 +29,7 @@ describe('/realtime', () => {
 
     it('should return 200 to success request', (done) => {
       chai.request(server)
-        .get('/v1/realtime/trips/?stop_id=7881')
+        .get('/v1/realtime/trips/?arriving-at=7881')
         .end((err, res) => {
           res.should.have.status(200);
           res.body.should.have.property('data');
