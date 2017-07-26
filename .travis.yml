@@ -1,11 +1,12 @@
 language: node_js
 env:
-  - SESSION_SECRET=secret
-  - DB_HOST=localhost
-  - DB_USER=root
-  - DB_PASS=
-  - DB_NAME=cityglide_test
-  - DB_PORT=3306
+  global:
+    - SESSION_SECRET=secret
+    - DB_HOST=localhost
+    - DB_USER=root
+    - DB_PASS=
+    - DB_NAME=cityglide_test
+    - DB_PORT=3306
 services:
   - mysql
 before_install:
