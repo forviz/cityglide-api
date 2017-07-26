@@ -2,7 +2,9 @@ language: node_js
 env:
   - SESSION_SECRET=secret
 services:
-  - mongodb
+  - mysql
+before_install:
+  - mysql -u root --password="" < test/cityglide-test.sql
 cache:
   directories:
     - node_modules
