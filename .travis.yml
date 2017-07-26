@@ -4,7 +4,7 @@ env:
 services:
   - mysql
 before_install:
-  - mysql -u root --password="" < test/cityglide-test.sql
+  - mysql cityglide-test < test/cityglide-test.sql
 cache:
   directories:
     - node_modules
