@@ -63,6 +63,7 @@ describe('/realtime', () => {
       chai.request(server)
         .get('/v1/realtime/vehicles/380')
         .end((err, res) => {
+          console.log(res.body);
           res.should.have.status(200);
           res.body.should.have.property('data');
           done();
