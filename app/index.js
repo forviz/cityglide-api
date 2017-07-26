@@ -70,7 +70,7 @@ app.use((req, res) => {
 
 
 app.listen(app.get('port'), () => {
-  console.log('รันดุ๊');
+  console.log('Cityglide api server started');
 });
 
 module.exports = app;

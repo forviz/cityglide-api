@@ -30,7 +30,7 @@ const callApiGoogle = (start, stop) => {
       if (jsonBody.error_message) {
         reject({
           message: 401,
-          error_message: jsonBody.error_message,
+          eMessage: jsonBody.error_message,
         });
       } else {
         resolve(jsonBody);
@@ -41,9 +41,9 @@ const callApiGoogle = (start, stop) => {
 
 const loopRouteId = async (routeId) => {
   const endStationResults = await db.select('*').from('routes_detail').whereIn('routes_id', routeId)
-            .whereNot('routes_detail.routes_detail_station_priority', 0)
-            .leftJoin('locations', 'routes_detail.locations_id', 'locations.id')
-            .orderBy('routes_detail_station_priority', 'desc');
+          .whereNot('routes_detail.routes_detail_station_priority', 0)
+          .leftJoin('locations', 'routes_detail.locations_id', 'locations.id')
+          .orderBy('routes_detail_station_priority', 'desc');
   return endStationResults;
 };
 
@@ -51,13 +51,13 @@ exports.getTrips = async (req, res) => {
   try {
     let data = {};
     let _googleMap = {};
-    const locationId = input.checkInputFormat('int', req.query.stop_id);
-    const routeId = req.query.route_id;
+    const locationId = input.checkInputFormat('int', req.query['arriving-at'], 'arriving-at');
+    const routeId = req.query['route-id'];
     let condition = {
       'routes_detail.locations_id': locationId,
     };
     if (routeId) {
-      input.checkInputFormat('int', routeId);
+      input.checkInputFormat('int', routeId, 'route-id');
       condition = _.assign({}, condition, {
         'routes_detail.routes_id': routeId,
       });
@@ -96,9 +96,9 @@ exports.getTrips = async (req, res) => {
         let tripResults = null;
         const googleMapDuration = _.get(_googleMap, `rows.${key}.elements.0.duration.value`);
         const arrival = (v.service_next_priority <= v.routes_detail_station_priority) ?
-        parseInt(moment(v.service_last_update).add(googleMapDuration, 's').format('X'), 10) : 0;
+                parseInt(moment(v.service_last_update).add(googleMapDuration, 's').format('X'), 10) : 0;
         const departure = (v.service_next_priority > v.routes_detail_station_priority) ?
-        parseInt(moment(v.service_last_update).subtract(googleMapDuration, 's').format('X'), 10) : 0;
+                parseInt(moment(v.service_last_update).subtract(googleMapDuration, 's').format('X'), 10) : 0;
         const serviceStartStation = (v.service_start_station === 'inbound') ? 1 : 2;
         if (serviceStartStation === v.routes_type_id) {
           const endStationKey = _.findIndex(endStationResults, (o) => {
@@ -142,15 +142,13 @@ exports.getTrips = async (req, res) => {
     }
     res.status(200).json(Response.responseWithSuccess(_.compact(data)));
   } catch (e) {
-    const code = e.message;
-    const message = e.error_message || '';
-    const err = Response.responseWithError(code, message);
+    const err = Response.responseWithError(e);
     res.status(err.status).send(err);
   }
 };
 exports.getVehicles = async (req, res) => {
   try {
-    const vehicleId = input.checkInputFormat('int', req.params.vehicleId);
+    const vehicleId = input.checkInputFormat('int', req.params.vehicleId, 'vehicleId');
     let data = {};
     if (vehicleId) {
       const query = await db.first('service.*').where('service_id', vehicleId)
@@ -187,7 +185,7 @@ exports.getVehicles = async (req, res) => {
     }
     res.status(200).json(Response.responseWithSuccess(data));
   } catch (e) {
-    const err = Response.responseWithError(e.message);
+    const err = Response.responseWithError(e);
     res.status(err.status).send(err);
   }
 };

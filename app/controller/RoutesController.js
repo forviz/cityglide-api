@@ -42,12 +42,12 @@ const getServiceData = async (routeId) => {
 
 exports.getService = async (req, res) => {
   try {
-    const routeId = input.checkInputFormat('int', req.params.route_id);
+    const routeId = input.checkInputFormat('int', req.params.route_id, 'route-id');
     const qData = await getServiceData(routeId);
     const data = qData || {};
     res.status(200).json(Response.responseWithSuccess(data));
   } catch (e) {
-    const err = Response.responseWithError(e.message);
+    const err = Response.responseWithError(e);
     res.status(err.status).send(err);
   }
 };
@@ -56,7 +56,7 @@ const loopRouteId = async (routeId) => {
   const results = [];
   const splitServiceId = routeId.split(',');
   for (const num of splitServiceId) {
-    input.checkInputFormat('int', num);
+    input.checkInputFormat('int', num, 'id');
     const queryWithReturn = getServiceData(num);
     if (queryWithReturn) {
       results.push(queryWithReturn);
@@ -70,21 +70,28 @@ const loopRouteId = async (routeId) => {
 exports.getMultiService = async (req, res) => {
   try {
     const routeId = req.query.id;
+    if (!routeId) {
+      const eInvalid = {
+        message: 400,
+        eMessage: 'Parameter id is require',
+      };
+      throw eInvalid;
+    }
     const results = await loopRouteId(routeId);
     res.status(200).json(Response.responseWithSuccess(results));
   } catch (e) {
-    const err = Response.responseWithError(e.message);
+    const err = Response.responseWithError(e);
     res.status(err.status).send(err);
   }
 };
 
 exports.getServiceStops = async (req, res) => {
   try {
-    const routeId = input.checkInputFormat('int', req.params.route_id);
+    const routeId = input.checkInputFormat('int', req.params.route_id, 'route-id');
     const qStop = await getStopsByServices(routeId);
     res.status(200).json(Response.responseWithSuccess(qStop));
   } catch (e) {
-    const err = Response.responseWithError(e.message);
+    const err = Response.responseWithError(e);
     res.status(err.status).send(err);
   }
 };
