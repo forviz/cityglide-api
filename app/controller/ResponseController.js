@@ -5,13 +5,14 @@ exports.responseWithSuccess = (data) => {
   };
 };
 
-exports.responseWithError = (errorCode, errorMessage) => {
+exports.responseWithError = (e) => {
+  const errorCode = e.message || e;
   let errorStatus = {};
   switch (errorCode) {
     case 401:
       errorStatus = {
         status: 400,
-        message: `Google Map Api: ${errorMessage}`,
+        message: `Google Map Api: ${e.eMessage}`,
       };
       break;
     case 404:
@@ -29,13 +30,13 @@ exports.responseWithError = (errorCode, errorMessage) => {
     case 400:
       errorStatus = {
         status: 400,
-        message: 'Bad Request',
+        message: e.eMessage,
       };
       break;
     default:
       errorStatus = {
         status: errorCode,
-        message: errorCode,
+        message: e.eMessage,
       };
       break;
   }
