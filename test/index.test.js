@@ -90,7 +90,7 @@ describe('/realtime', () => {
           res.body.data.should.have.property('current-stop-sequence').eql(67);
           res.body.data.should.have.property('stop-id').eql(3081);
           res.body.data.should.have.property('current-status').eql('IN_TRANSIT_TO');
-          res.body.data.should.have.property('timestamp').eql(1493349122);
+          res.body.data.should.have.property('timestamp').to.be.a('number');
           done();
         });
     });
