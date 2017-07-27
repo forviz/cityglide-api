@@ -48,7 +48,7 @@ describe('/realtime', () => {
           trip.should.have.property('direction').to.be.a('number');
 
           // Vehicle
-          res.body.data[0].should.have.property('vehicle');
+          tripUpdate.should.have.property('vehicle');
 
           const vehicle = tripUpdate.vehicle;
           vehicle.should.have.property('id');
@@ -65,7 +65,7 @@ describe('/realtime', () => {
           stopTimeUpdate.should.have.property('schedule-relationship').eql('SCHEDULED');
           done();
         });
-    }).timeout(5000);;
+    }).timeout(5000);
   });
 
   describe('/vehicles', () => {
