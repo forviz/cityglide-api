@@ -1,0 +1,31 @@
+language: node_js
+env:
+  global:
+    - SESSION_SECRET=secret
+    - DB_HOST=localhost
+    - DB_USER=root
+    - DB_PASS=
+    - DB_NAME=cityglide_test
+    - DB_PORT=3306
+    - GOOGLE_APP_KEY=AIzaSyDIWuc_y_NrGetc12FMh8lXSZwR-sQ4A18
+services:
+  - mysql
+before_install:
+  - mysql -e 'CREATE DATABASE cityglide_test;'
+  - mysql cityglide_test < test/cityglide-test.sql
+cache:
+  directories:
+    - node_modules
+branches:
+  only:
+    - develop
+    - master
+notifications:
+  email: false
+node_js:
+  - '7'
+before_script:
+  - npm prune
+script:
+  - npm run lint
+  - npm run test
