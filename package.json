@@ -4,6 +4,7 @@
   "description": "cityglide-api",
   "main": "index.js",
   "scripts": {
+    "prepush": "npm test",
     "test": "cross-env PORT=7654 mocha --reporter spec ./test/*.test.js",
     "test:watch": "npm run test -- --watch",
     "lint": "eslint app",
