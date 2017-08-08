@@ -10,6 +10,9 @@
     "lint": "eslint app",
     "start": "node_modules/.bin/nodemon ./app/index.js"
   },
+  "engines": {
+    "node": ">=8"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/DM-godaremee/cityglide-api.git"
