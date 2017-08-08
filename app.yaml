@@ -1,2 +1,9 @@
 runtime: nodejs
 env: flex
+env_variables:
+  DB_HOST: 52.220.56.169
+  DB_USER: forviz
+  DB_PASS: gdf%^4wygds
+  DB_NAME: transits_UAT
+  DB_PORT: 3306
+  GOOGLE_APP_KEY: AIzaSyDIWuc_y_NrGetc12FMh8lXSZwR-sQ4A18
