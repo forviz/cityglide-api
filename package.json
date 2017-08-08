@@ -11,7 +11,7 @@
     "start": "node_modules/.bin/nodemon ./app/index.js"
   },
   "engines": {
-    "node": ">=8"
+    "node": "8.x"
   },
   "repository": {
     "type": "git",
